@@ -1,6 +1,6 @@
 package telcomuser;
 
-import java.util.Calendar;
+import java.util.*;
 import java.text.*;
 import java.util.*;
 import java.util.Date;
@@ -13,17 +13,15 @@ import utility.*;
 public class TelcomUser {
 	private String phoneNumber;
 	private String callTo;
-	private Vector communicationRecords;
-	private TreeSet callToNumbersSet;
-	private ArrayList callToNumbersList;
+	private ArrayList communicationRecords;
+	private ArrayList callToSum;
+	private LinkedHashMap singleRecord;
 	Tongxin tongxin;
-
 
 	public TelcomUser(String phoneNumber) {
 		this.phoneNumber = phoneNumber;
-		this.communicationRecords = new Vector();
-		this.callToNumbersSet = new TreeSet();
-		this.callToNumbersList = new ArrayList();
+		this.communicationRecords = new ArrayList();
+		this.callToSum = new ArrayList();
 		Factory factory1 = (Factory) XMLUtility.getBean();
 		tongxin = factory1.creat();
 	}
@@ -41,6 +39,7 @@ public class TelcomUser {
 	}
 
 	public void generateCommunicateRecords() {
+
 		int recordNum = new Random().nextInt(10);
 		for (int i = 0; i <= recordNum; i++) {
 			// 随机生成第i条通话记录
@@ -49,29 +48,35 @@ public class TelcomUser {
 			// 随机减去若干小时（十小时以内）
 			cal.add(Calendar.HOUR, -new Random().nextInt(10));
 			callTo = getcallToPhoneNumber();
+			this.callToSum.add(callTo);
 			long timeStart = System.currentTimeMillis() - new Random().nextInt(36000000);
 			long timeEnd = timeStart + 60000 + new Random().nextInt(600000);
-			this.communicationRecords.add(this.phoneNumber + "," + timeStart + "," + timeEnd + "," + this.callTo + ";");
+
+			// 插入通话记录
+			this.singleRecord = new LinkedHashMap();
+			this.singleRecord.put("主叫", this.phoneNumber);
+			this.singleRecord.put("开始时间", new Date(timeStart));
+			this.singleRecord.put("结束时间", new Date(timeEnd));
+			this.singleRecord.put("被叫号码", this.callTo);
+			this.singleRecord.put("计费", this.accountFee(timeStart, timeEnd));
+			this.communicationRecords.add(this.singleRecord);
 		}
+
 	}
 
 	public void printDetails() {
-		//使用Enumeration接口遍历
-		
-		Enumeration enumeration = this.communicationRecords.elements();
-		while(enumeration.hasMoreElements()) {
-			String[] recordField = ((String) enumeration.nextElement()).split(",");
-			System.out.println("主叫：" + recordField[0]);
-			System.out.println("被叫：" + recordField[3]);
-			Date timeStart = new Date(Long.parseLong(recordField[1]));
-			Date timeEnd = new Date(Long.parseLong(recordField[2]));
-			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy年MM月dd日");
-			
-			//SimpleDateFormat
-			System.out.println("通话开始时间：" + simpleDateFormat.format(timeStart));
-			System.out.println("通话结束时间：" + simpleDateFormat.format(timeEnd));
-			System.out
-					.println("计费：" + accountFee(Long.parseLong(recordField[1]), Long.parseLong(recordField[2])) + "元");
+
+		Iterator itRecords = this.communicationRecords.iterator();
+		while (itRecords.hasNext()) {
+			System.out.println("-----------通话记录分割线---------------");
+			this.singleRecord = ((LinkedHashMap) itRecords.next());
+			Set keySet = this.singleRecord.keySet();
+			Iterator itkey = keySet.iterator();
+			while (itkey.hasNext()) {
+				Object key = itkey.next();
+				Object value = this.singleRecord.get(key);
+				System.out.println(key + ":" + value);
+			}
 		}
 	}
 }
